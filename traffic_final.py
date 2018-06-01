@@ -27,11 +27,16 @@ stationname_list_3 = ['가산디지털단지','강남','강남구청','경복궁
                       '동묘앞','명동','삼각지','삼성','서대문','서초','선릉','시청','신사','신용산','안국','압구정','양재','여의나루',
                       '여의도','역삼','을지로3가','을지로4가','을지로입구','종각','종로3가','종로5가','청담','충무로','학동','한강진',
                       '한양대','회현']
+#동대문(0),잠실(0),강동(2)나,뚝섬(1),마곡(1)나,마포(1)나,서울역(1),신길(1),강동(2)나,미아(2),
+# 금호(2),신대방(2),신정(2)나,강남(3),삼성(3),시청(3),압구정(3),양재(3) 는 따로 조사해야함.
 #변경해야 할 내용
 filename ='2016.txt'
-stationname = '대치'
-bunryu = '3'
+stationname = '신정'
+stationname_bar = stationname+'\('
+bunryu = '2'
 #변경해야 할 내용 끝
+#리스트에 있는 것을 뽑으려면 아래 for문으로 돌려야함
+'''
 for stationname in stationname_list_3:
     print(stationname)
     traffic_table = pd.read_csv(filename, encoding='CP949', index_col=0, header=0)
@@ -91,3 +96,53 @@ for stationname in stationname_list_3:
 
     plt.savefig("2016/"+stationname+".png",dpi=300)
     plt.clf() #그래프를 초기화 한다
+'''
+print(stationname)
+traffic_table = pd.read_csv(filename, encoding='CP949', index_col=0, header=0)
+# print(traffic_table[traffic_table['역명']=='서울역(*'])
+traffic_table = traffic_table[traffic_table['역명']==stationname]  # 특정 단어를 포함하는 것만 검출
+#traffic_table=traffic_table[traffic_table['역명'].str.contains(stationname_bar)]
+traffic_in_table = []  # 승차
+traffic_out_table = []  # 하차
+traffic_union_table = []  # 승차 합차 합치기
+traffic_in_table = traffic_table[traffic_table['구분'] == '승차']  # 승차만 저장
+traffic_out_table = traffic_table[traffic_table['구분'] == '하차']  # 하차만 저장
+
+traffic_in_table = traffic_in_table.mean()
+
+traffic_out_table = traffic_out_table.mean()
+
+traffic_union_table = pd.concat([traffic_in_table, traffic_out_table], axis=1)  # 최종적으로 승차랑 하차랑 합침
+traffic_union_table = traffic_union_table.drop("역번호")
+traffic_union_table = traffic_union_table.rename(columns={1: 0})
+print(traffic_union_table)
+
+stationfilename = '2016/2016' + stationname + '.txt'
+traffic_union_table.to_csv(stationfilename, mode='w', encoding='euc-kr')
+# 메모장 읽어와서 첫번째 줄만 삭제하기
+with open(stationfilename, 'r') as fin:
+    data1 = fin.read().splitlines(True)
+with open(stationfilename, 'w') as fout:
+    fout.writelines(data1[1:])
+
+# 이곳은 그래프 그려서 저장시키는 소스
+data = np.loadtxt(stationfilename, delimiter=',')
+time = data[:, 0]
+traffic_in = data[:, 1]
+traffic_out = data[:, 2]
+
+plt.figure(num=1, dpi=100, facecolor='white')
+plt.plot(time, traffic_in, color="blue", linewidth=2.5, linestyle="--", label="승차")
+plt.plot(time, traffic_out, 'r-', label="하차")
+
+plt.title(stationname + '2016(' + bunryu + '분류)')
+plt.xlabel('시간')
+plt.ylabel('인원')
+plt.xlim(5, 25)
+plt.ylim(0)
+plt.grid()
+plt.legend()
+
+plt.savefig("2016/" + stationname + ".png", dpi=300)
+plt.show()
+plt.clf()  # 그래프를 초기화 한다
